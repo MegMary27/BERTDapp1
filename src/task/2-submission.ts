@@ -1,5 +1,5 @@
 import { namespaceWrapper } from '@_koii/namespace-wrapper';
-
+import { solution } from "./1-task";
 export async function submission(roundNumber: number): Promise<string | void> {
   /**
    * Submit the task proofs for auditing
@@ -7,7 +7,7 @@ export async function submission(roundNumber: number): Promise<string | void> {
    */
   try {
     console.log(`MAKE SUBMISSION FOR ROUND ${roundNumber}`);
-    return await namespaceWrapper.storeGet('value') ?? '';
+    return await namespaceWrapper.storeGet(solution) ?? '';
   } catch (error) {
     console.error('MAKE SUBMISSION ERROR:', error);
   }

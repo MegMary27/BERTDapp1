@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task UI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Task Management System</h1>
+
+    <div id="category-selection">
+      <h2>Select User Category</h2>
+      <button onclick="selectCategory('problemDefiner')">Problem Definer</button>
+      <button onclick="selectCategory('solutionProvider')">Solution Provider</button>
+    </div>
+
+    <div id="problem-definer" style="display:none;">
+      <h2>Submit a Problem Statement</h2>
+      <textarea id="problem-input" placeholder="Enter problem statement here..."></textarea>
+      <button onclick="submitProblem()">Submit Problem</button>
+    </div>
+
+    <div id="solution-provider" style="display:none;">
+      <h2>Provide a Solution</h2>
+      <label for="problem-id">Problem ID:</label>
+      <input type="number" id="problem-id" placeholder="Enter Problem ID">
+      <input type="text" id="solution-title" placeholder="Solution Title">
+      <textarea id="solution-details" placeholder="Enter solution details..."></textarea>
+      <textarea id="solution-abstract" placeholder="Enter solution abstract..."></textarea>
+      <button onclick="submitSolution()">Submit Solution</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
