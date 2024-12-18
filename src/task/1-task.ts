@@ -1,11 +1,13 @@
 import { namespaceWrapper } from "@_koii/namespace-wrapper";
 import { scrapeGoogleScholar } from "./scraper"; // Assuming scraper code is in scraper.ts
-import { extractKeywords } from "./nlp"; // Assuming NLP code is in nlp.ts
+import { getSBertEmbeddings } from "./sbert"; // A new function to get SBERT embeddings
+import cosineSimilarity from "cosine-similarity";
 
 // In-memory storage for problems and solutions
 const problemStatements: { id: number; statement: string }[] = [];
 let problemCounter = 0;
-export let solution: string = ''; 
+export let solution: string = '';
+
 export async function task(roundNumber: number): Promise<void> {
   try {
     console.log(`EXECUTE TASK FOR ROUND ${roundNumber}`);
@@ -13,14 +15,14 @@ export async function task(roundNumber: number): Promise<void> {
     // Choose user category
     const userCategory = await getUserCategory();
 
-    if (userCategory === "problemDefiner") {
+    if (userCategory === "problemdefiner") {
       // Problem definer flow
       const problem = await getUserInput("Enter the problem statement:");
       problemCounter++;
       problemStatements.push({ id: problemCounter, statement: problem });
       console.log("Problem statement submitted successfully!");
 
-    } else if (userCategory === "solutionProvider") {
+    } else if (userCategory === "solutionprovider") {
       // Solution provider flow
       console.log("Available problem statements:");
       problemStatements.forEach((p) => console.log(`${p.id}: ${p.statement}`));
@@ -34,23 +36,36 @@ export async function task(roundNumber: number): Promise<void> {
       }
 
       const title = await getUserInput("Enter the solution title:");
-      const solution = await getUserInput("Enter the solution details:");
+      const solutionDetails = await getUserInput("Enter the solution details:");
       const abstract = await getUserInput("Enter the abstract for proof of uniqueness:");
 
-      const userKeywords = extractKeywords(title, abstract);
-      console.log("Keywords extracted from user input:", userKeywords);
+      // Get SBERT embeddings for the user's abstract
+      const userEmbedding = await getSBertEmbeddings(abstract);
+      console.log("SBERT embedding for user abstract obtained.");
 
+      // Scrape Google Scholar for related articles
       const scrapedArticles = await scrapeGoogleScholar(title);
-      const scrapedKeywords = scrapedArticles.flatMap((article) => article.keywords);
-      console.log("Keywords extracted from scraped articles:", scrapedKeywords);
+      console.log("Scraped articles from Google Scholar.");
 
-      const matchPercentage = calculateKeywordMatch(userKeywords, scrapedKeywords);
-      
-      if (matchPercentage <= 20) {
-        console.log("Solution accepted. Match percentage:", matchPercentage, solution);
-        //solution = solution;
+      // Get embeddings for the scraped abstracts
+      const scrapedEmbeddings = await Promise.all(
+        scrapedArticles.map((article) => getSBertEmbeddings(article.abstract))
+      );
+      console.log("SBERT embeddings for scraped articles obtained.");
+
+      // Calculate cosine similarity with each scraped abstract
+      const similarities = scrapedEmbeddings.map((embedding) => cosineSimilarity(userEmbedding, embedding));
+
+      // Find the maximum similarity score
+      const maxSimilarity = Math.max(...similarities);
+
+      console.log(`Maximum similarity score: ${(maxSimilarity * 100).toFixed(2)}%`);
+
+      if (maxSimilarity <= 0.2) {
+        console.log("Solution accepted. Similarity score:", (maxSimilarity * 100).toFixed(2), "%");
+        solution = solutionDetails;
       } else {
-        console.log("Solution rejected. Match percentage:", matchPercentage, "%");
+        console.log("Solution rejected. Similarity score:", (maxSimilarity * 100).toFixed(2), "%");
       }
     }
 
@@ -62,7 +77,6 @@ export async function task(roundNumber: number): Promise<void> {
 
 // Helper function to simulate user input
 async function getUserInput(promptText: string): Promise<string> {
-  // Replace this with actual input mechanism (e.g., readline, UI, etc.)
   console.log(promptText);
   return "Mock user input"; // Placeholder
 }
@@ -71,11 +85,4 @@ async function getUserInput(promptText: string): Promise<string> {
 async function getUserCategory(): Promise<string> {
   const category = await getUserInput("Are you a problem definer or solution provider? (Type 'problemDefiner' or 'solutionProvider')");
   return category.toLowerCase();
-}
-
-// Helper function to calculate keyword match percentage
-function calculateKeywordMatch(userKeywords: string[], scrapedKeywords: string[]): number {
-  const userKeywordSet = new Set(userKeywords);
-  const matchedKeywords = scrapedKeywords.filter((keyword) => userKeywordSet.has(keyword));
-  return (matchedKeywords.length / userKeywordSet.size) * 100;
 }
